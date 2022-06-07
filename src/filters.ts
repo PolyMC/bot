@@ -1,9 +1,5 @@
 import * as BuildConfig from './constants';
 import { Message } from 'discord.js';
-<<<<<<< HEAD
-=======
-import Filter from 'bad-words';
->>>>>>> 46c9f4cecf92728e4bdb4b5b71d1948e4d7b7702
 import { isBad } from './badLinks';
 import urlRegex from 'url-regex';
 
