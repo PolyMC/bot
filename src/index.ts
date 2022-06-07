@@ -14,6 +14,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { SuccessfulParsedMessage } from 'discord-command-parser';
 import dotenv from 'dotenv';
+import { parseLog } from './mclogs';
 dotenv.config();
 
 export interface Command {
@@ -98,47 +99,59 @@ client.once('ready', async () => {
       return;
     }
 
+    const commanded = await parseMsg(e);
+    if (commanded) return;
+
+    const log = await parseLog(e.content);
+    if (log != null) {
+      e.reply({ embeds: [log] });
+      return;
+    }
+
     const filtered = await filterMessage(e);
     if (!filtered) {
       return;
     }
-
-    const parsed = parser.parse(e, '!', {
-      allowBots: true,
-    });
-
-    if (!parsed.success) return;
-    const cmd = commands.find(
-      (c) => c.name == parsed.command || c.aliases?.includes(parsed.command)
-    );
-
-    if (!cmd) {
-      const tag = tags.find(
-        (t) => t.name == parsed.command || t.aliases?.includes(parsed.command)
-      );
-      if (tag) {
-        if (tag.text) {
-          e.reply(tag.text);
-          return;
-        } else if (tag.embed) {
-          const em = new MessageEmbed(tag.embed);
-          e.reply({ embeds: [em] });
-          return;
-        }
-      }
-      return;
-    }
-    try {
-      await cmd.exec(e, parsed);
-    } catch (err: any) {
-      // ts moment
-      const em = new MessageEmbed()
-        .setTitle('Error')
-        .setColor('RED')
-        .setDescription(err);
-      e.reply({ embeds: [em] });
-    }
   });
 });
+
+async function parseMsg(e: Message) {
+  const parsed = parser.parse(e, '!', {
+    allowBots: true,
+  });
+
+  if (!parsed.success) return false;
+  const cmd = commands.find(
+    (c) => c.name == parsed.command || c.aliases?.includes(parsed.command)
+  );
+
+  if (!cmd) {
+    const tag = tags.find(
+      (t) => t.name == parsed.command || t.aliases?.includes(parsed.command)
+    );
+    if (tag) {
+      if (tag.text) {
+        e.reply(tag.text);
+        return true;
+      } else if (tag.embed) {
+        const em = new MessageEmbed(tag.embed);
+        e.reply({ embeds: [em] });
+        return true;
+      }
+    }
+    return false;
+  }
+  try {
+    await cmd.exec(e, parsed);
+  } catch (err: any) {
+    // ts moment
+    const em = new MessageEmbed()
+      .setTitle('Error')
+      .setColor('RED')
+      .setDescription(err);
+    e.reply({ embeds: [em] });
+  }
+  return true;
+}
 
 client.login(process.env.DISCORD_TOKEN);
