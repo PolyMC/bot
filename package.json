@@ -1,6 +1,6 @@
 {
   "name": "polly",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development nodemon --ext ts,json --watch src --exec esno src/index.ts",
