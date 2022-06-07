@@ -17,7 +17,7 @@ const javaAnalyzer: analyzer = (text) => {
 
     return [
       'WrongJavaVersion',
-      `Please switch to the following Java version: ${ver}\nFor more information, type \`!java\``,
+      `Please switch to the following: \`${ver}\`\nFor more information, type \`!java\``,
     ];
   }
   return null;
