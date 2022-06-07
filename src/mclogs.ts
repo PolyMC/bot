@@ -1,8 +1,9 @@
+import { getLatest } from './version';
 import { MessageEmbed } from 'discord.js';
-const reg = /https\:\/\/mclo.gs\/.*/g;
+const reg = /https\:\/\/mclo.gs\/[^ ]*/g;
 
-type analyzer = (text: string) => Array<string> | null;
-const javaAnalyzer: analyzer = (text) => {
+type analyzer = (text: string) => Promise<Array<string> | null>;
+const javaAnalyzer: analyzer = async (text) => {
   if (text.includes('This instance is not compatible with Java version')) {
     const xp =
       /Please switch to one of the following Java versions for this instance:[\r\n]+([^\r\n]+)/g;
@@ -23,7 +24,22 @@ const javaAnalyzer: analyzer = (text) => {
   return null;
 };
 
-const analyzers: analyzer[] = [javaAnalyzer];
+const versionAnalyzer: analyzer = async (text) => {
+  const vers = text.match(/PolyMC version: [0-9].[0-9].[0-9]/g);
+  if (vers && vers[0]) {
+    const latest = await getLatest();
+    const current = vers[0].replace('PolyMC version: ', '');
+    if (latest != current) {
+      return [
+        'OutdatedPolyMC',
+        `Your installed version is ${current}, while the newest version is ${latest}.\nPlease update, for more info see https://polymc.org/download/`,
+      ];
+    }
+  }
+  return null;
+};
+
+const analyzers: analyzer[] = [javaAnalyzer, versionAnalyzer];
 
 export async function parseLog(s: string): Promise<MessageEmbed | null> {
   const r = s.match(reg);
@@ -45,10 +61,10 @@ export async function parseLog(s: string): Promise<MessageEmbed | null> {
   const embed = new MessageEmbed()
     .setTitle('Log analyzer')
     .setColor('DARK_GREEN')
-    .setDescription(`Analyzing ${link} [${apiUrl}] [ID: ${id}]`);
+    .setDescription(`Analysis of ${link} [${apiUrl}] [ID: ${id}]`);
   for (let i in analyzers) {
     const analyzer = analyzers[i];
-    const out = analyzer(log);
+    const out = await analyzer(log);
     if (out) embed.addField(out[0], out[1]);
   }
   if (embed.fields[0]) return embed;
